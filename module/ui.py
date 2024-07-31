@@ -577,7 +577,13 @@ class Ui_MainWindow(QWidget):
             form.setUdp(port_sim, port_dest)
             form.setPacket()
             # form.viewPacket()
-            form.send()
+
+            # 기본 코드
+            # form.send()
+
+            # 수정코드
+            resp = form.send()
+            print(resp)
 
             QMessageBox.information(self, "전송 완료", "전송 완료")
             return

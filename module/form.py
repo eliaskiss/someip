@@ -1,5 +1,8 @@
-from scapy.all import UDP, load_contrib, send, IP, conf
+from scapy.layers.inet import UDP
+from scapy.layers.inet import IP
+from scapy.all import load_contrib, send, conf, sr
 from scapy.contrib.automotive.someip import SOMEIP
+import sys
 
 class SomeIpForm:
     def __init__(self, proto, msg_type, ret_code, srv_id, method_id, client_id, session_id, payload):
@@ -15,20 +18,45 @@ class SomeIpForm:
         self.sip.client_id = client_id 
         self.sip.session_id = session_id
         self.sip.add_payload(payload)
-        
-        
 
     def send(self):
-        send(self.packet)
+        try:
+            # 기존코드
+            return send(self.packet)
+
+            # 수정코드
+            return sr(self.packet)
+        except Exception as e:
+            msg = f'Function send - "{e}" (Line: {sys.exc_info()[-1].tb_lineno})'
+            raise Exception(msg)
 
     def viewPacket(self):
-        self.packet.show()
+        try:
+            self.packet.show()
+        except Exception as e:
+            msg = f'Function viewPacket - "{e}" (Line: {sys.exc_info()[-1].tb_lineno})'
+            raise Exception(msg)
 
     def setUdp(self, port_sim, port_dest):
-        self.udp = UDP(sport=port_sim,dport=port_dest)
+        try:
+            self.udp = UDP(sport=port_sim,dport=port_dest)
+        except Exception as e:
+            msg = f'Function setUdp - "{e}" (Line: {sys.exc_info()[-1].tb_lineno})'
+            raise Exception(msg)
 
     def setIp(self, address_sim, address_dest):
-        self.ip = IP(src = address_sim, dst = address_dest)
+        try:
+            self.ip = IP(src = address_sim, dst = address_dest)
+        except Exception as e:
+            msg = f'Function setIp - "{e}" (Line: {sys.exc_info()[-1].tb_lineno})'
+            raise Exception(msg)
 
     def setPacket(self):
-        self.packet = self.ip/self.udp/self.sip
+        try:
+            self.packet = self.ip/self.udp/self.sip
+        except Exception as e:
+            msg = f'Function setPacket - "{e}" (Line: {sys.exc_info()[-1].tb_lineno})'
+            raise Exception(msg)
+
+if __name__ == '__main__':
+    sif = SOMEIP()
