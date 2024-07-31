@@ -21,10 +21,13 @@ class SomeIpForm:
 
     def send(self):
         try:
-            # 기존코드
             return send(self.packet)
+        except Exception as e:
+            msg = f'Function send - "{e}" (Line: {sys.exc_info()[-1].tb_lineno})'
+            raise Exception(msg)
 
-            # 수정코드
+    def send2(self):
+        try:
             return sr(self.packet)
         except Exception as e:
             msg = f'Function send - "{e}" (Line: {sys.exc_info()[-1].tb_lineno})'

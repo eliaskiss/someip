@@ -31,6 +31,7 @@ class MainDialog(QDialog):
         self.main_ui.btn_run_automation.clicked.connect(self.run_automation)
         self.main_ui.btn_send_manual.clicked.connect(self.send_manual)
         self.main_ui.btn_stop_automation.clicked.connect(self.stop_automation)
+        self.main_ui.btn_send_manual_2.clicked.connect(self.send_manual2)
 
     def send_manual(self):
         try:
@@ -63,7 +64,50 @@ class MainDialog(QDialog):
             form.setIp(address_sim, address_dest)
             form.setUdp(port_sim, port_dest)
             form.setPacket()
-            # resp = form.send()
+            resp = form.send()
+            print(resp)
+            self.main_ui.tb_status.append(str(resp))
+
+            self.main_ui.tb_status.append(f'test')
+
+            QMessageBox.information(self, "Information", "Transfer Complete.")
+        except Exception as e:
+            QMessageBox.critical(self, 'Exception', str(e))
+
+    def send_manual2(self):
+        try:
+            address_sim = self.main_ui.le_simul_ip.text()       # String
+            port_sim = self.main_ui.sb_simul_port.value()       # Int
+            address_dest = self.main_ui.le_dest_ip.text()       # String
+            port_dest = self.main_ui.sb_dest_port.value()       # Int
+            protocol_ver = self.main_ui.sb_protocol_ver.value() # Int
+            message_id = self.main_ui.le_msg_id.text()          # String
+            service_id, method_id = getIds(message_id)
+            msg_type = self.main_ui.cb_msg_type.currentText()   # String
+
+            msg_status = self.main_ui.cb_msg_status.currentText()   # String
+            client_id = self.main_ui.sp_client_id.value()       # Int
+            session_id = self.main_ui.sp_session_id.value()     # Int
+            payload = ConvertPayloadToHexString(self.main_ui.le_payload.text())
+            payload = hexStringToByte(payload)
+
+            form = SomeIpForm(
+                proto=protocol_ver,
+                msg_type=msg_type,
+                ret_code=msg_status,
+                srv_id=service_id,
+                method_id=method_id,
+                client_id=client_id,
+                session_id=session_id,
+                payload=payload
+            )
+
+            form.setIp(address_sim, address_dest)
+            form.setUdp(port_sim, port_dest)
+            form.setPacket()
+            resp = form.send2()
+            print(resp)
+            self.main_ui.tb_status.append(str(resp))
 
             self.main_ui.tb_status.append(f'test')
 
@@ -74,7 +118,7 @@ class MainDialog(QDialog):
     def open_import_excel(self):
         self.main_ui.le_excelfile_path.setText('')
         current_dir = os.path.curdir
-        file_name = QFileDialog.getOpenFileName(self, 'Open Excel File', current_dir, 'Excel(*.xlsx')
+        file_name = QFileDialog.getOpenFileName(self, 'Open Excel File', current_dir, 'Excel(*.xlsx)')
         if file_name[0] != '':
             if file_name[0].split('.')[-1] != 'xlsx':
                 QMessageBox.warning(self, "Warning", "Please select only excel file!")
