@@ -10,6 +10,11 @@ from openpyxl import load_workbook
 from main_ui import Ui_Dialog as Main_Ui
 from module.trans import *
 from module.form import *
+from scapy.all import *
+from scapy.layers.inet import UDP
+from scapy.layers.inet import IP
+from scapy.layers.inet import ICMP
+from scapy.layers.inet import TCP
 
 class MainDialog(QDialog):
     def __init__(self):
@@ -22,7 +27,7 @@ class MainDialog(QDialog):
 
         self.main_ui = Main_Ui()
         self.main_ui.setupUi(self)
-        self.setWindowTitle('SOMEIP')
+        self.setWindowTitle('SOMEIP (240806)')
 
         self.init_setup()
 
@@ -64,9 +69,14 @@ class MainDialog(QDialog):
             form.setIp(address_sim, address_dest)
             form.setUdp(port_sim, port_dest)
             form.setPacket()
-            resp = form.send()
-            print(resp)
-            self.main_ui.tb_status.append(str(resp))
+            r = form.sr1()
+            print(r)
+            print(r[TCP])
+            print(r[UDP])
+            print(r[ICMP])
+            # resp = form.send()
+            # print(resp)
+            # self.main_ui.tb_status.append(str(resp))
 
             self.main_ui.tb_status.append(f'test')
 
@@ -105,9 +115,12 @@ class MainDialog(QDialog):
             form.setIp(address_sim, address_dest)
             form.setUdp(port_sim, port_dest)
             form.setPacket()
-            resp = form.send2()
-            print(resp)
-            self.main_ui.tb_status.append(str(resp))
+            r, u = form.sr()
+            print(r[0][1].summary())
+            print(r[0][1][TCP])
+            print(r[0][1][UDP])
+            print(r[0][1][ICMP])
+            # self.main_ui.tb_status.append(str(resp))
 
             self.main_ui.tb_status.append(f'test')
 
@@ -248,7 +261,8 @@ class TransferThread(QThread):
             form.setIp(address_sim, address_dest)
             form.setUdp(port_sim, port_dest)
             form.setPacket()
-            # resp = form.send()
+            resp = form.send()
+
             self.logSignal.emit(f'test-{count}')
 
             self.countSignal.emit(count)

@@ -1,6 +1,6 @@
 from scapy.layers.inet import UDP
 from scapy.layers.inet import IP
-from scapy.all import load_contrib, send, conf, sr
+from scapy.all import load_contrib, send, conf, sr, srp, srp1, sr1
 from scapy.contrib.automotive.someip import SOMEIP
 import sys
 
@@ -26,9 +26,23 @@ class SomeIpForm:
             msg = f'Function send - "{e}" (Line: {sys.exc_info()[-1].tb_lineno})'
             raise Exception(msg)
 
-    def send2(self):
+    def srp(self):
+        try:
+            return srp(self.packet)
+        except Exception as e:
+            msg = f'Function send - "{e}" (Line: {sys.exc_info()[-1].tb_lineno})'
+            raise Exception(msg)
+
+    def sr(self):
         try:
             return sr(self.packet)
+        except Exception as e:
+            msg = f'Function send - "{e}" (Line: {sys.exc_info()[-1].tb_lineno})'
+            raise Exception(msg)
+
+    def sr1(self):
+        try:
+            return sr1(self.packet)
         except Exception as e:
             msg = f'Function send - "{e}" (Line: {sys.exc_info()[-1].tb_lineno})'
             raise Exception(msg)

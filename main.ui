@@ -367,7 +367,7 @@
      </rect>
     </property>
     <property name="text">
-     <string>Send</string>
+     <string>Send (SR1)</string>
     </property>
    </widget>
    <widget class="QPushButton" name="btn_send_manual_2">
