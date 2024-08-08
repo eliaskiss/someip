@@ -98,7 +98,7 @@ class MainDialog(QDialog):
 
         self.main_ui = Main_Ui()
         self.main_ui.setupUi(self)
-        self.setWindowTitle('SOMEIP (240806)')
+        self.setWindowTitle('SOMEIP (240809)')
 
         self.init_setup()
 
@@ -147,12 +147,14 @@ class MainDialog(QDialog):
             form.setIp(address_sim, address_dest)
             form.setUdp(port_sim, port_dest)
             form.setPacket()
-            # r, u = form.sr()
+            r, u = form.sr()
+            summary = r[0][1].summary()
+            original = r[0][1].original
 
-            # summary = r[0][1].summary()
-            # original = r[0][1].original
-            original = b'E\x00\x000\x1e\xe6\x00\x00@\x11\xb7\x1fd@n\x0bd@n,\xc7E\xc7E\x00\x1cFO\x00\x13\x05\x01\x00\x00\x00\x0c\x00\x01\x00\x01\x01\x01\x80\x00\x00\x00\x00\x00\x00\x00'
-            summary = 'IP / UDP 100.64.110.11:51013 > 100.64.110.44:51013 / Raw / Padding'
+            print('Summary:', summary)
+            print('Original:', original)
+            # original = b'E\x00\x000\x1e\xe6\x00\x00@\x11\xb7\x1fd@n\x0bd@n,\xc7E\xc7E\x00\x1cFO\x00\x13\x05\x01\x00\x00\x00\x0c\x00\x01\x00\x01\x01\x01\x80\x00\x00\x00\x00\x00\x00\x00'
+            # summary = 'IP / UDP 100.64.110.11:51013 > 100.64.110.44:51013 / Raw / Padding'
 
             response = response_parser(original)
             ip_info = parse_ip(summary)
@@ -264,7 +266,7 @@ class TransferThread(QThread):
     countSignal = pyqtSignal(int)
     completeSignal = pyqtSignal()
 
-    def __init__(self, excel_file_path, interval, cell_row_index):
+    def __init__(self, excel_file_path, interval):
         super(self.__class__, self).__init__()
 
         self.start_row = 8
@@ -286,74 +288,95 @@ class TransferThread(QThread):
         self.interval = interval
 
     def run(self):
-        count = 1
-        wb = load_workbook(self.excel_file_path)
-        ws = wb.active
-        for data in self.test_data:
-            address_sim = str(data[0])  # String
-            port_sim = int(data[1])  # Int
-            address_dest = str(data[2])  # String
-            port_dest = int(data[3])  # Int
-            protocol_ver = int(data[4])  # Int
-            message_id = str(data[5])  # String
-            service_id, method_id = getIds(message_id)
-            msg_type = str(data[6])  # String
-            msg_status = str(data[7])  # String
-            client_id = int(data[8])  # Int
-            session_id = int(data[9])  # Int
-            payload = ConvertPayloadToHexString(str(data[10]))
-            payload = hexStringToByte(payload)
+        try:
+            count = 1
+            wb = load_workbook(self.excel_file_path)
+            ws = wb.active
 
-            form = SomeIpForm(
-                proto=protocol_ver,
-                msg_type=msg_type,
-                ret_code=msg_status,
-                srv_id=service_id,
-                method_id=method_id,
-                client_id=client_id,
-                session_id=session_id,
-                payload=payload
-            )
+            for data in self.test_data:
+                address_sim = str(data[0])  # String
+                port_sim = int(data[1])  # Int
+                address_dest = str(data[2])  # String
+                port_dest = int(data[3])  # Int
+                protocol_ver = int(data[4])  # Int
+                message_id = str(data[5])  # String
+                service_id, method_id = getIds(message_id)
+                msg_type = str(data[6])  # String
+                msg_status = str(data[7])  # String
+                client_id = int(data[8])  # Int
+                session_id = int(data[9])  # Int
+                payload = ConvertPayloadToHexString(str(data[10]))
+                payload = hexStringToByte(payload)
 
-            form.setIp(address_sim, address_dest)
-            form.setUdp(port_sim, port_dest)
-            form.setPacket()
-            # r, u = form.sr()
+                form = SomeIpForm(
+                    proto=protocol_ver,
+                    msg_type=msg_type,
+                    ret_code=msg_status,
+                    srv_id=service_id,
+                    method_id=method_id,
+                    client_id=client_id,
+                    session_id=session_id,
+                    payload=payload
+                )
 
-            # summary = r[0][1].summary()
-            # original = r[0][1].original
-            original = b'E\x00\x000\x1e\xe6\x00\x00@\x11\xb7\x1fd@n\x0bd@n,\xc7E\xc7E\x00\x1cFO\x00\x13\x05\x01\x00\x00\x00\x0c\x00\x01\x00\x01\x01\x01\x80\x00\x00\x00\x00\x00\x00\x00'
-            summary = 'IP / UDP 100.64.110.11:51013 > 100.64.110.44:51013 / Raw / Padding'
+                form.setIp(address_sim, address_dest)
+                form.setUdp(port_sim, port_dest)
+                form.setPacket()
+                r, u = form.sr()
 
-            response = response_parser(original)
-            ip_info = parse_ip(summary)
-            response.update(ip_info)
+                summary = r[0][1].summary()
+                original = r[0][1].original
+                # original = b'E\x00\x000\x1e\xe6\x00\x00@\x11\xb7\x1fd@n\x0bd@n,\xc7E\xc7E\x00\x1cFO\x00\x13\x05\x01\x00\x00\x00\x0c\x00\x01\x00\x01\x01\x01\x80\x00\x00\x00\x00\x00\x00\x00'
+                # summary = 'IP / UDP 100.64.110.11:51013 > 100.64.110.44:51013 / Raw / Padding'
 
-            # response = {'from_ip':'100.64.111.44',
-            #             'to_ip':'100.64.111.11',
-            #             'service_id':'0x0013',
-            #             'method_id':'0x0051',
-            #             'message_type':'RESPONSE',
-            #             'payload':'00000000'}
-            ws[f'S{self.start_row + (count - 1)}']
-            log_message = f'[{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}]\n'
-            log_message += f'Source IP: {response["from_ip"]} / Dest IP: {response["to_ip"]}\n'
-            log_message += f'Service ID: {response["service_id"]}\n'
-            log_message += f'Method ID: {response["method_id"]}\n'
-            log_message += f'Message Type: {response["message_type"]}\n'
-            log_message += f'Payload: {response["payload"]}\n'
+                response = response_parser(original)
+                ip_info = parse_ip(summary)
+                response.update(ip_info)
 
-            self.logSignal.emit(log_message)
+                # response = {'from_ip':'100.64.111.44',
+                #             'to_ip':'100.64.111.11',
+                #             'service_id':'0x0013',
+                #             'method_id':'0x0051',
+                #             'message_type':'RESPONSE',
+                #             'payload':'00000000'}
 
-            self.countSignal.emit(count)
-            count += 1
+                ws[f'S{self.start_row + (count - 1)}'] = response['from_ip']
+                ws[f'T{self.start_row + (count - 1)}'] = response['to_ip']
+                ws[f'U{self.start_row + (count - 1)}'] = response['service_id']
+                ws[f'V{self.start_row + (count - 1)}'] = response['method_id']
+                ws[f'W{self.start_row + (count - 1)}'] = response['message_type']
+                ws[f'X{self.start_row + (count - 1)}'] = response['payload']
 
-            if self.is_running is False:
-                break
+                if (ws[f'N{self.start_row + (count - 1)}'].value == response['from_ip']
+                    and ws[f'O{self.start_row + (count - 1)}'].value == response['from_ip']
+                    and ws[f'P{self.start_row + (count - 1)}'].value == response['from_ip']
+                    and ws[f'Q{self.start_row + (count - 1)}'].value == response['from_ip']
+                    and ws[f'R{self.start_row + (count - 1)}'].value == response['from_ip']):
+                    ws[f'Y{self.start_row + (count - 1)}'] = 'PASS'
+                else:
+                    ws[f'Y{self.start_row + (count - 1)}'] = 'FAIL'
 
-            time.sleep(self.interval)
-        self.completeSignal.emit()
-        wb.save(self.excel_file_path)
+                log_message = f'[{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}]\n'
+                log_message += f'Source IP: {response["from_ip"]} / Dest IP: {response["to_ip"]}\n'
+                log_message += f'Service ID: {response["service_id"]}\n'
+                log_message += f'Method ID: {response["method_id"]}\n'
+                log_message += f'Message Type: {response["message_type"]}\n'
+                log_message += f'Payload: {response["payload"]}\n'
+
+                self.logSignal.emit(log_message)
+
+                self.countSignal.emit(count)
+                count += 1
+
+                if self.is_running is False:
+                    break
+
+                time.sleep(self.interval)
+            self.completeSignal.emit()
+            wb.save(self.excel_file_path)
+        except Exception as e:
+            msg = f'Function ConvertPayloadToHexString - "{e}" (Line: {sys.exc_info()[-1].tb_lineno})'
+            print(msg)
 
     def stop_thread(self):
         self.is_running = False

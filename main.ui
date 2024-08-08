@@ -282,7 +282,7 @@
       <item>
        <widget class="QLineEdit" name="le_simul_ip">
         <property name="text">
-         <string>192.168.0.1</string>
+         <string>100.64.110.44</string>
         </property>
        </widget>
       </item>
@@ -350,7 +350,7 @@
       <item>
        <widget class="QLineEdit" name="le_dest_ip">
         <property name="text">
-         <string>192.168.0.1</string>
+         <string>100.64.110.11</string>
         </property>
        </widget>
       </item>
@@ -486,7 +486,7 @@
      </rect>
     </property>
    </widget>
-   <widget class="QWidget" name="">
+   <widget class="QWidget" name="layoutWidget">
     <property name="geometry">
      <rect>
       <x>10</x>
