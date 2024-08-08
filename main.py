@@ -16,6 +16,77 @@ from scapy.layers.inet import IP
 from scapy.layers.inet import ICMP
 from scapy.layers.inet import TCP
 
+MESSAGE_TYPES={
+        "0x00":"REQUEST",
+        "0x01":"REQUEST_NO_RET",
+        "0x02":"NOTIFICATION",
+        "0x40":"REQUEST_ACK",
+        "0x41":"REQUEST_NORET_ACK",
+        "0x42":"NOTIFICATION_ACK",
+        "0x80":"RESPONSE",
+        "0x81":"ERROR",
+        "0xc0":"RESPONSE_ACK",
+        "0xc1":"ERROR_ACK",
+        "0x20":"TP_REQUEST",
+        "0x21":"TP_REQUEST_NO_RET",
+        "0x22":"TP_NOTIFICATION",
+        "0xa0":"TP_RESPONSE",
+        "0xa1":"TP_ERROR"
+    }
+
+def convert_to_hex(code, prefix=True):
+    return '0x' + code.hex() if prefix else code.hex()
+
+def parse_ip(summary):
+    from_ip, to_ip = summary.split(' > ')
+    from_ip = re.findall(r'[0-9]+(?:\.[0-9]+){3}', from_ip)[0]
+    to_ip = re.findall(r'[0-9]+(?:\.[0-9]+){3}', to_ip)[0]
+    # print(from_ip)
+    # print(to_ip)
+    return {'from_ip': from_ip, 'to_ip': to_ip}
+
+def response_parser(data):
+    # b'E\x00\x000\x1e\xe6\x00\x00@\x11\xb7\x1fd@n\x0bd@n,\xc7E\xc7E\x00\x1cFO
+    # \x00\x13                      # Service ID
+    # \x05\x01                      # Method ID
+    # \x00\x00\x00\x0c              # Length 12
+    # \x00\x01                      # Client ID
+    # \x00\x01                      # Session ID
+    # \x01                          # SOME/IP Version
+    # \x01                          # Interface Version
+    # \x80                          # Message Type
+    # \x00                          # Return Code
+    # \x00\x00\x00\x00              # Payload
+    # \x00\x00'
+    # print(data[0:28])
+    data = data[28:]
+
+    service_id = convert_to_hex(data[0:2])
+    # print(service_id)
+
+    method_id = convert_to_hex(data[2:4])
+    # print(method_id)
+
+    client_id = convert_to_hex(data[8:10])
+    # print(client_id)
+
+    session_id = convert_to_hex(data[10:12])
+    # print(session_id)
+
+    message_type = convert_to_hex(data[14:15])
+    message_type = MESSAGE_TYPES[message_type]
+    # print(message_type)
+
+    payload = convert_to_hex(data[16:20], False)
+    # print(payload)
+
+    return {'service_id': service_id,
+            'method_id': method_id,
+            # 'client_id': client_id,
+            # 'session_id': session_id,
+            'message_type': message_type,
+            'payload': payload}
+
 class MainDialog(QDialog):
     def __init__(self):
         # Display minimize, close button
@@ -36,7 +107,14 @@ class MainDialog(QDialog):
         self.main_ui.btn_run_automation.clicked.connect(self.run_automation)
         self.main_ui.btn_send_manual.clicked.connect(self.send_manual)
         self.main_ui.btn_stop_automation.clicked.connect(self.stop_automation)
-        self.main_ui.btn_send_manual_2.clicked.connect(self.send_manual2)
+        # self.main_ui.btn_send_manual_2.clicked.connect(self.send_manual2)
+        self.main_ui.btn_clear_log.clicked.connect(self.clean_log)
+
+        self.manual_response_data_list = []
+
+
+    def clean_log(self):
+        self.main_ui.tb_status.clear()
 
     def send_manual(self):
         try:
@@ -69,62 +147,35 @@ class MainDialog(QDialog):
             form.setIp(address_sim, address_dest)
             form.setUdp(port_sim, port_dest)
             form.setPacket()
-            r = form.sr1()
-            print(r)
-            print(r[TCP])
-            print(r[UDP])
-            print(r[ICMP])
-            # resp = form.send()
-            # print(resp)
-            # self.main_ui.tb_status.append(str(resp))
+            # r, u = form.sr()
 
-            self.main_ui.tb_status.append(f'test')
+            # summary = r[0][1].summary()
+            # original = r[0][1].original
+            original = b'E\x00\x000\x1e\xe6\x00\x00@\x11\xb7\x1fd@n\x0bd@n,\xc7E\xc7E\x00\x1cFO\x00\x13\x05\x01\x00\x00\x00\x0c\x00\x01\x00\x01\x01\x01\x80\x00\x00\x00\x00\x00\x00\x00'
+            summary = 'IP / UDP 100.64.110.11:51013 > 100.64.110.44:51013 / Raw / Padding'
 
-            QMessageBox.information(self, "Information", "Transfer Complete.")
-        except Exception as e:
-            QMessageBox.critical(self, 'Exception', str(e))
+            response = response_parser(original)
+            ip_info = parse_ip(summary)
+            response.update(ip_info)
 
-    def send_manual2(self):
-        try:
-            address_sim = self.main_ui.le_simul_ip.text()       # String
-            port_sim = self.main_ui.sb_simul_port.value()       # Int
-            address_dest = self.main_ui.le_dest_ip.text()       # String
-            port_dest = self.main_ui.sb_dest_port.value()       # Int
-            protocol_ver = self.main_ui.sb_protocol_ver.value() # Int
-            message_id = self.main_ui.le_msg_id.text()          # String
-            service_id, method_id = getIds(message_id)
-            msg_type = self.main_ui.cb_msg_type.currentText()   # String
+            self.manual_response_data_list.append(response)
 
-            msg_status = self.main_ui.cb_msg_status.currentText()   # String
-            client_id = self.main_ui.sp_client_id.value()       # Int
-            session_id = self.main_ui.sp_session_id.value()     # Int
-            payload = ConvertPayloadToHexString(self.main_ui.le_payload.text())
-            payload = hexStringToByte(payload)
+            # response = {'from_ip':'100.64.111.44',
+            #             'to_ip':'100.64.111.11',
+            #             'service_id':'0x0013',
+            #             'method_id':'0x0051',
+            #             'message_type':'RESPONSE',
+            #             'payload':'00000000'}
 
-            form = SomeIpForm(
-                proto=protocol_ver,
-                msg_type=msg_type,
-                ret_code=msg_status,
-                srv_id=service_id,
-                method_id=method_id,
-                client_id=client_id,
-                session_id=session_id,
-                payload=payload
-            )
+            log_message = f'[{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}]\n'
+            log_message += f'Source IP: {response["from_ip"]} / Dest IP: {response["to_ip"]}\n'
+            log_message += f'Service ID: {response["service_id"]}\n'
+            log_message += f'Method ID: {response["method_id"]}\n'
+            log_message += f'Message Type: {response["message_type"]}\n'
+            log_message += f'Payload: {response["payload"]}\n'
+            self.main_ui.tb_status.append(log_message)
 
-            form.setIp(address_sim, address_dest)
-            form.setUdp(port_sim, port_dest)
-            form.setPacket()
-            r, u = form.sr()
-            print(r[0][1].summary())
-            print(r[0][1][TCP])
-            print(r[0][1][UDP])
-            print(r[0][1][ICMP])
-            # self.main_ui.tb_status.append(str(resp))
-
-            self.main_ui.tb_status.append(f'test')
-
-            QMessageBox.information(self, "Information", "Transfer Complete.")
+            # QMessageBox.information(self, "Information", "Transfer Complete.")
         except Exception as e:
             QMessageBox.critical(self, 'Exception', str(e))
 
@@ -213,16 +264,20 @@ class TransferThread(QThread):
     countSignal = pyqtSignal(int)
     completeSignal = pyqtSignal()
 
-    def __init__(self, excel_file_path, interval):
+    def __init__(self, excel_file_path, interval, cell_row_index):
         super(self.__class__, self).__init__()
-        wb = load_workbook(excel_file_path)
+
+        self.start_row = 8
+
+        self.excel_file_path = excel_file_path
+        wb = load_workbook(self.excel_file_path)
         print(wb.sheetnames)
         ws = wb.active
 
         self.total_count = ws['D2'].value
 
         self.test_data = []
-        for row in ws.iter_rows(min_row=8, max_row=8 + (self.total_count - 1)):
+        for row in ws.iter_rows(min_row=self.start_row, max_row=self.start_row + (self.total_count - 1)):
             row_data = [elem.value for elem in row[2:18]]
             self.test_data.append(row_data)
         wb.close()
@@ -232,6 +287,8 @@ class TransferThread(QThread):
 
     def run(self):
         count = 1
+        wb = load_workbook(self.excel_file_path)
+        ws = wb.active
         for data in self.test_data:
             address_sim = str(data[0])  # String
             port_sim = int(data[1])  # Int
@@ -261,9 +318,32 @@ class TransferThread(QThread):
             form.setIp(address_sim, address_dest)
             form.setUdp(port_sim, port_dest)
             form.setPacket()
-            resp = form.send()
+            # r, u = form.sr()
 
-            self.logSignal.emit(f'test-{count}')
+            # summary = r[0][1].summary()
+            # original = r[0][1].original
+            original = b'E\x00\x000\x1e\xe6\x00\x00@\x11\xb7\x1fd@n\x0bd@n,\xc7E\xc7E\x00\x1cFO\x00\x13\x05\x01\x00\x00\x00\x0c\x00\x01\x00\x01\x01\x01\x80\x00\x00\x00\x00\x00\x00\x00'
+            summary = 'IP / UDP 100.64.110.11:51013 > 100.64.110.44:51013 / Raw / Padding'
+
+            response = response_parser(original)
+            ip_info = parse_ip(summary)
+            response.update(ip_info)
+
+            # response = {'from_ip':'100.64.111.44',
+            #             'to_ip':'100.64.111.11',
+            #             'service_id':'0x0013',
+            #             'method_id':'0x0051',
+            #             'message_type':'RESPONSE',
+            #             'payload':'00000000'}
+            ws[f'S{self.start_row + (count - 1)}']
+            log_message = f'[{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}]\n'
+            log_message += f'Source IP: {response["from_ip"]} / Dest IP: {response["to_ip"]}\n'
+            log_message += f'Service ID: {response["service_id"]}\n'
+            log_message += f'Method ID: {response["method_id"]}\n'
+            log_message += f'Message Type: {response["message_type"]}\n'
+            log_message += f'Payload: {response["payload"]}\n'
+
+            self.logSignal.emit(log_message)
 
             self.countSignal.emit(count)
             count += 1
@@ -273,6 +353,7 @@ class TransferThread(QThread):
 
             time.sleep(self.interval)
         self.completeSignal.emit()
+        wb.save(self.excel_file_path)
 
     def stop_thread(self):
         self.is_running = False
